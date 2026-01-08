@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amf
+  namespace: open5gs
+  labels:
+    app: amf
+    app.kubernetes.io/name: amf
+    app.kubernetes.io/part-of: open5gs
+spec:
+  replicas: 1  # HPA will manage this
+  selector:
+    matchLabels:
+      app: amf
+  template:
+    metadata:
+      labels:
+        app: amf
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+        - name: amf
+          image: docker_open5gs:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              cp /config/amf.yaml /etc/open5gs/amf.yaml
+              open5gs-amfd
+          ports:
+            - name: sbi
+              containerPort: 7777
+              protocol: TCP
+            - name: ngap
+              containerPort: 38412
+              protocol: SCTP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: amf-config
+              mountPath: /config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7777
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7777
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: amf-config
+          configMap:
+            name: amf-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amf-svc
+  namespace: open5gs
+  labels:
+    app: amf
+  annotations:
+    # loxilb annotations for SCTP load balancing
+    loxilb.io/lbmode: "onearm"
+    loxilb.io/lbalgo: "lc"  # least-connections
+spec:
+  type: LoadBalancer
+  loadBalancerClass: loxilb.io/loxilb
+  selector:
+    app: amf
+  ports:
+    - name: ngap
+      port: 38412
+      targetPort: 38412
+      protocol: SCTP
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+      protocol: TCP

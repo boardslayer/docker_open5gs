@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: loxilb
+  namespace: kube-system
+  labels:
+    app: loxilb
+spec:
+  selector:
+    matchLabels:
+      app: loxilb
+  template:
+    metadata:
+      labels:
+        app: loxilb
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: loxilb
+          image: ghcr.io/loxilb-io/loxilb:latest
+          imagePullPolicy: Always
+          command:
+            - /root/loxilb-io/loxilb/loxilb
+          args:
+            - --bgp
+            - --egr-hooks
+            - --blacklist=cni[0-9a-z]|veth.|flannel.|docker.
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - NET_ADMIN
+                - SYS_RESOURCE
+          volumeMounts:
+            - name: bpf
+              mountPath: /sys/fs/bpf
+            - name: modules
+              mountPath: /lib/modules
+              readOnly: true
+      volumes:
+        - name: bpf
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        - name: modules
+          hostPath:
+            path: /lib/modules
+            type: Directory
