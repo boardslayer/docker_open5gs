@@ -2,6 +2,7 @@
 
 # NGAP Load Balancing Setup Script
 # This script sets up loxilb for SCTP/NGAP load balancing across multiple AMF instances
+# Mode: LEAST-CONNECTIONS (LC) - Routes to AMF with fewest active connections
 
 set -e
 
@@ -60,12 +61,12 @@ configure_loxilb() {
     docker exec loxilb ip addr add ${LOXILB_VIP}/32 dev lo || true
 
     # Create SCTP load balancer rule for NGAP (port 38412)
-    echo_info "Creating SCTP LB rule for NGAP..."
+    echo_info "Creating SCTP LB rule for NGAP (least-connections mode)..."
     docker exec loxilb loxicmd create lb ${LOXILB_VIP} \
         --sctp=38412:38412 \
         --endpoints=${AMF1_IP}:1,${AMF2_IP}:1 \
         --mode=onearm \
-        --select=rr
+        --select=lc
 
     echo_info "loxilb configuration complete!"
 
