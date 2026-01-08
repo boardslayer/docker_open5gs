@@ -14,8 +14,11 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# echo_info prints an informational message prefixed with a green `[INFO]` tag.
 echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+# echo_warn prints a warning message prefixed with `[WARN]` in yellow.
 echo_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+# echo_error prints the provided message prefixed with `[ERROR]` in red.
 echo_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Load environment

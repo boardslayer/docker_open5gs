@@ -12,10 +12,12 @@ cd "$SCRIPT_DIR"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m' # echo_info prints an informational message prefixed with `[INFO]` in green to stdout.
 
 echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+# echo_warn prints a warning message prefixed with "[WARN]" in yellow to stdout.
 echo_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+# echo_error prints an error message prefixed with "[ERROR]" in red color.
 echo_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Load environment variables
@@ -29,7 +31,9 @@ else
     exit 1
 fi
 
-# Function to wait for container to be ready
+# wait_for_container waits for a Docker container to become running within a limited number of attempts.
+# It accepts a single argument `container` (name or ID), polls Docker up to 30 times with 2‑second intervals,
+# and returns `0` if the container is running or `1` if it does not become ready within the attempts.
 wait_for_container() {
     local container=$1
     local max_attempts=30
@@ -48,7 +52,7 @@ wait_for_container() {
     return 1
 }
 
-# Function to configure loxilb
+# configure_loxilb configures loxilb to handle SCTP NGAP traffic by adding the VIP and creating an SCTP load-balancing rule for port 38412 across the configured AMF endpoints.
 configure_loxilb() {
     echo_info "Configuring loxilb SCTP load balancer..."
 
@@ -74,7 +78,7 @@ configure_loxilb() {
     docker exec loxilb loxicmd get lb -o wide
 }
 
-# Function to verify setup
+# verify_setup prints loxilb load-balancer rules and container statuses, then summarizes next steps (WebUI access, subscriber/UE/gNB commands, and connection-tracking monitoring).
 verify_setup() {
     echo_info "Verifying setup..."
 
